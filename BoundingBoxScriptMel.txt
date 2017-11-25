@@ -1,0 +1,573 @@
+// Global variables
+global int $Axisalligned = 0;
+global int $createNewShader = 0;
+global int $parentBounding = 0;
+global int $lockBounding = 0;
+global int $createLayer = 0;
+global int $spherelayernumber = 1;
+global int $cubelayernumber = 1;
+global int $customAttribute = 0;
+
+//Global procedures
+global proc axisOn ()
+{
+    $Axisalligned = 1;
+}
+
+global proc axisesOff()
+{
+    $Axisalligned = 0;
+}
+
+global proc createnewShader()
+{
+    $createNewShader = 1;
+   
+}
+
+global proc parentbounding()
+{
+    print"PARENT";
+    $parentBounding = 1;
+}
+global proc parentBoundingOff()
+{
+    print"PARENTOFF";
+    $parentBounding = 0;
+}
+
+global proc lockbounding ()
+{
+    print"lock boounding";
+    $lockBounding = 1;
+}
+global proc lockBoundingOff ()
+{
+    print"lock boounding OFF";
+    $lockBounding = 0;
+}
+
+global proc creatinglayer()
+{
+     print "creatinglayer";
+    $createLayer = 1;
+}
+global proc creatingLayerOff()
+{
+    print "creatinglayeroff";
+    $createLayer = 0;
+}
+
+global proc addCustomAttributeNameOn()
+{
+    print "Custom attribute tag added";
+    $customAttribute = 1;
+}
+
+global proc addCustomAttributeNameOff()
+{
+    print "Custom attribute tag removed";
+    $customAttribute = 0;
+}
+
+global proc Undo () // Undos last done thing
+{
+    undo;
+}
+
+
+// End of procedures
+
+
+string $MyWindow = "myWindow";
+if(`window -ex $MyWindow`)
+{
+   deleteUI $MyWindow;
+}
+            
+// Interface
+window -title "Bounding Box creator" -w 200 -h 200 myWindow;
+
+setParent -u;
+frameLayout -collapsable true -label "Bounding Box Type";
+columnLayout;
+$check = `checkBox -label "Axis Alligned" -onCommand "axisOn" -offCommand "axisesOff"`;
+radioButtonGrp -numberOfRadioButtons 2 -label "Bounding Box Type: " -labelArray2 "Cube" "Sphere"
+-onCommand1 "" -onCommand2 "" -select 1 selectType;
+setParent -u;
+
+
+setParent -u;
+frameLayout -collapsable true -label "Bounding Box Size: ";
+$Offset = `floatSliderGrp 
+    -label "Offset"
+    -field on 
+    -fieldMinValue -10 
+    -fieldMaxValue 10 
+    -minValue -10 
+    -maxValue 10 
+    -value 0 
+    "Offset"`;
+setParent -u;
+
+setParent -u;
+frameLayout -collapsable true -label "Bounding Box Shader";
+$check1 = `checkBox -label "Create New Bounding Box Shader" -onCommand "createnewShader" -offCommand "checkOff"`;
+
+$cv = `colorSliderGrp 
+-label "Pick Color" 
+-rgb 0 0 0 
+"ColorSlider"`;
+
+$transvalue = `floatSliderGrp 
+-label "Transparency" 
+-field on 
+-fieldMinValue -10 
+-fieldMaxValue 10 
+-minValue -1 
+-maxValue 1 
+-value 0
+"transvalue"`;
+setParent -u;
+
+setParent -u;
+frameLayout -collapsable true -label "Bounding Box Settings";
+$check2 = `checkBox -label "Parent Bounding Box with Mesh" -onCommand "parentbounding" -offCommand "parentBoundingOff"`;
+$check3 = `checkBox -label "Lock Bounding Box Attributes" -onCommand "lockbounding" -offCommand "lockBoundingOff"`;
+$check4 = `checkBox -label "Create Layer for Bounding Box" -onCommand "creatinglayer" -offCommand "creatingLayerOff"`;
+$check5 = `checkBox -label "Add Custom Attribute" -onCommand "addCustomAttributeNameOn" -offCommand "addCustomAttributeNameOff"`;
+setParent -u;
+
+rowLayout -numberOfColumns 3 -columnWidth3 50 50 50;
+$command = ("deleteUI " + $MyWindow);
+
+button -label "Create Bbox" -width 100 -command "creatingboundingbox";
+button -label "Undo" -width 100 -command "Undo";
+button -width 100 -label "Close" -command $command;
+//End of Interface
+
+showWindow;
+
+global proc creatingboundingbox()
+{
+    if(`radioButtonGrp -query -select selectType` == 1)
+    {
+        if($Axisalligned == 1) //||||||||||||||AXIS ALLIGNED CUBE ||||||||||||||||
+        {
+        print ("Axis alligned for cube \n");
+        
+        string $selected[];
+        $selected = selectedNodes();
+        
+        xform -cp;
+         
+        makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+        float $Locatingpivot[] = `xform -ws -q -sp`;
+     
+        
+                
+        float $minx = getAttr($selected[0] + ".boundingBoxMinX");
+        float $maxx = getAttr($selected[0] + ".boundingBoxMaxX");
+        float $miny = getAttr($selected[0] + ".boundingBoxMinY");
+        float $maxy = getAttr($selected[0] + ".boundingBoxMaxY");
+        float $minz = getAttr($selected[0] + ".boundingBoxMinZ");
+        float $maxz = getAttr($selected[0] + ".boundingBoxMaxZ");
+        
+                //||||||||||||||||||Offset |||||||||||||||||||||||||||||||
+
+        global string $Offset;
+        global string $transvalue;
+        
+        float $v = `floatSliderGrp -q -v Offset`;
+        float $cv[] = `colorSliderGrp -q -rgb ColorSlider`;
+        float $tv = `floatSliderGrp -q -v transvalue`;
+
+        
+        print("The current value of the offsetslider is: "  + $v + "\n");
+
+        
+        $xValues = $maxx - $minx;
+        $xValues = $xValues + $v;
+        
+        $yValues = $maxy - $miny;
+        $yValues = $yValues + $v;
+         
+        $zValues = $maxz - $minz;
+        $zValues = $zValues + $v;
+        
+         
+      
+        polyCube -name ($selected[0] + "_to_Cube") -width $xValues -height $yValues -depth $zValues;
+        move $Locatingpivot[0] $Locatingpivot[1] $Locatingpivot[2] ($selected[0] + "_to_Cube");
+        xform -sp $Locatingpivot[0] $Locatingpivot[1] $Locatingpivot[2] ($selected[0] + "_to_Cube"); 
+        //setAttr($selected[0] + "_to_Cube" + ".translate", $trans[0], $trans[1], $trans[2]);
+        //setAttr($selected[0] + ".translate", $trans[0], $trans[1], $trans[2]);
+        
+        if ($createNewShader == 1)
+        {
+            string $myShader = `createNode blinn`;
+            string $shadingGroup = ($myShader + "ShadinGroup");
+            sets -renderable true -noSurfaceShader true
+            -empty -name $shadingGroup;
+            defaultNavigation -connectToExisting
+            -source $myShader
+            -destination $shadingGroup;
+        
+            select -r ($selected[0] + "_to_Cube");
+            sets -e -forceElement $shadingGroup;
+            
+            setAttr ($myShader + ".color") $cv[0] $cv[1] $cv[2];
+            setAttr ($myShader + ".transparency") $tv $tv $tv;
+              
+        }
+          if($parentBounding == 1)
+        {
+          select ($selected[0] + "_to_Cube") $selected;
+          parent $selected[0];
+        }
+          if($lockBounding == 1)
+        {
+            setAttr -lock true ($selected[0] + "_to_Cube.tx");
+            setAttr -lock true ($selected[0] + "_to_Cube.ty");
+            setAttr -lock true ($selected[0] + "_to_Cube.tz");
+            setAttr -lock true ($selected[0] + "_to_Cube.rx");
+            setAttr -lock true ($selected[0] + "_to_Cube.ry");
+            setAttr -lock true ($selected[0] + "_to_Cube.rz");
+            setAttr -lock true ($selected[0] + "_to_Cube.sx");
+            setAttr -lock true ($selected[0] + "_to_Cube.sy");
+            setAttr -lock true ($selected[0] + "_to_Cube.sz");
+            setAttr -lock true ($selected[0] + "_to_Cube.v");                 
+        }
+        
+         if ($createLayer == 1)
+         {
+            select ($selected[0] + "_to_Cube");
+            createDisplayLayer -name ("Bounding box layer CUBE") -number 1 -empty;
+            layerEditorAddObjects Bounding_box_layer_CUBE;
+         }
+          if($customAttribute == 1)
+         {
+            addAttr -ln "Hitbox"  -dt "string" ($selected[0] + "_to_Cube.");
+            setAttr -e-channelBox true ($selected[0] + "_to_Cube.BoundingBox");
+         }
+        
+    }
+        if ($Axisalligned == 0)  //||||||||||||||AXIS NOT ALLIGNED CUBE ||||||||||||||||
+        {
+            
+        
+        print ("Axis not alligned for cube \n");
+             
+        string $selected[];
+        $selected = selectedNodes();
+        
+        xform -cp;
+
+        float $rotate[] = getAttr($selected[0] + ".rotate"); 
+        rotate 0 0 0 $selected;
+        
+   
+        makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+        float $Locatingpivot[] = `xform -worldSpace -query -sp`;
+       
+        //xform -cp $selected;
+       
+        
+        float $minx = getAttr($selected[0] + ".boundingBoxMinX");
+        float $maxx = getAttr($selected[0] + ".boundingBoxMaxX");
+        float $miny = getAttr($selected[0] + ".boundingBoxMinY");
+        float $maxy = getAttr($selected[0] + ".boundingBoxMaxY");
+        float $minz = getAttr($selected[0] + ".boundingBoxMinZ");
+        float $maxz = getAttr($selected[0] + ".boundingBoxMaxZ");
+        
+        
+        //||||||||||||||||||Offset |||||||||||||||||||||||||||||||
+        global string $Offset;
+        float $v = `floatSliderGrp -q -v Offset`;
+        float $cv[] = `colorSliderGrp -q -rgb ColorSlider`;
+        float $tv = `floatSliderGrp -q -v transvalue`;
+        print("The current value of the offsetslider is: "  + $v + "\n");
+
+        
+        $xValues = $maxx - $minx;
+        $xValues = $xValues + $v;
+        
+        $yValues = $maxy - $miny;
+        $yValues = $yValues + $v;
+         
+        $zValues = $maxz - $minz;
+        $zValues = $zValues + $v;
+        
+        polyCube -name ($selected[0] + "_to_Cube") -width $xValues -height $yValues -depth $zValues;
+        move $Locatingpivot[0] $Locatingpivot[1] $Locatingpivot[2] ($selected[0] + "_to_Cube");
+        xform -sp $Locatingpivot[0] $Locatingpivot[1] $Locatingpivot[2] ($selected[0] + "_to_Cube");
+        setAttr($selected[0] + "_to_Cube" + ".rotate", $rotate[0], $rotate[1], $rotate[2]);
+        setAttr($selected[0] + ".rotate", $rotate[0], $rotate[1], $rotate[2]);  
+  
+        
+         if ($createNewShader == 1)
+            {
+
+            string $myShader = `createNode blinn`;
+            string $shadingGroup = ($myShader + "SG");
+            sets -renderable true -noSurfaceShader true
+            -empty -name $shadingGroup;
+            defaultNavigation -connectToExisting
+            -source $myShader
+            -destination $shadingGroup;
+        
+            select -r ($selected[0] + "_to_Cube");
+            sets -e -forceElement $shadingGroup;
+            
+            setAttr ($myShader + ".color") $cv[0] $cv[1] $cv[2];
+            setAttr ($myShader + ".transparency") $tv $tv $tv;
+            
+            } 
+            help parent;
+         if($parentBounding == 1)
+        {
+          select ($selected[0] + "_to_Cube") $selected;
+          parent $selected[0];
+         }
+          if($lockBounding == 1)
+        {
+            print ("LOCKING BOUNDING BOX");
+            setAttr -lock true ($selected[0] + "_to_Cube.tx");
+            setAttr -lock true ($selected[0] + "_to_Cube.ty");
+            setAttr -lock true ($selected[0] + "_to_Cube.tz");
+            setAttr -lock true ($selected[0] + "_to_Cube.rx");
+            setAttr -lock true ($selected[0] + "_to_Cube.ry");
+            setAttr -lock true ($selected[0] + "_to_Cube.rz");
+            setAttr -lock true ($selected[0] + "_to_Cube.sx");
+            setAttr -lock true ($selected[0] + "_to_Cube.sy");
+            setAttr -lock true ($selected[0] + "_to_Cube.sz");
+            setAttr -lock true ($selected[0] + "_to_Cube.v");               
+        }
+       
+        if ($createLayer == 1)
+        {
+            select ($selected[0] + "_to_Cube");
+            createDisplayLayer -name ("Bounding box layer CUBE") -number 1 -empty;
+            layerEditorAddObjects Bounding_box_layer_CUBE;
+        }
+         if($customAttribute == 1)
+         {
+            addAttr -ln "Hitbox"  -dt "string" ($selected[0] + "_to_Cube.");
+            setAttr -e-channelBox true ($selected[0] + "_to_Cube.BoundingBox");
+         }
+            
+        }
+}
+    if(`radioButtonGrp -query -select selectType` == 2)
+    {
+       if($Axisalligned == 1)  //||||||||||||||AXIS ALLIGNED SPHERE ||||||||||||||||
+       {
+       print("Axisalligned for sphere \n");
+        string $selected[];
+        $selected = selectedNodes();
+        xform -cp;
+        
+        makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+        float $Locatingpivot[] = `xform -worldSpace -query -sp`; 
+       // xform -cp $selected;
+       // move -rpr 0 0 0 $selected;
+        
+        float $minx = getAttr($selected[0] + ".boundingBoxMinX");
+        float $maxx = getAttr($selected[0] + ".boundingBoxMaxX");
+        float $miny = getAttr($selected[0] + ".boundingBoxMinY");
+        float $maxy = getAttr($selected[0] + ".boundingBoxMaxY");
+        float $minz = getAttr($selected[0] + ".boundingBoxMinZ");
+        float $maxz = getAttr($selected[0] + ".boundingBoxMaxZ");
+        
+                //||||||||||||||||||Offset |||||||||||||||||||||||||||||||
+
+        global string $Offset;
+        float $v = `floatSliderGrp -q -v Offset`;
+        float $cv[] = `colorSliderGrp -q -rgb ColorSlider`;
+        float $tv = `floatSliderGrp -q -v transvalue`;
+        
+        print("The current value of the offsetslider is: "  + $v + "\n");
+
+        
+        $xValues = $maxx - $minx;
+        $xValues = $xValues + $v;
+        
+        $yValues = $maxy - $miny;
+        $yValues = $yValues + $v;
+         
+        $zValues = $maxz - $minz;
+        $zValues = $zValues + $v;
+        
+        
+        vector $theValues = << $xValues , $yValues , $zValues >>;
+        $theValues /= 2;
+        float $boundingValues = `mag $theValues`; 
+        
+        polySphere -name ($selected[0] + "_to_Sphere") -radius $boundingValues;
+        move $Locatingpivot[0] $Locatingpivot[1] $Locatingpivot[2] ($selected[0] + "_to_Sphere");
+        xform -sp $Locatingpivot[0] $Locatingpivot[1] $Locatingpivot[2] ($selected[0] + "_to_Sphere");
+       // setAttr($selected[0] + "_to_Sphere"  + ".translate", $trans[0], $trans[1], $trans[2]);
+       // setAttr($selected[0] + ".translate", $trans[0], $trans[1], $trans[2]);
+          
+             
+             if ($createNewShader == 1)
+                {
+    
+                string $myShader = `createNode blinn`;
+                string $shadingGroup = ($myShader + "SG");
+                sets -renderable true -noSurfaceShader true
+                -empty -name $shadingGroup;
+                defaultNavigation -connectToExisting
+                -source $myShader
+                -destination $shadingGroup;
+            
+                select -r ($selected[0] + "_to_Sphere");
+                sets -e -forceElement $shadingGroup;
+                
+                setAttr ($myShader + ".color") $cv[0] $cv[1] $cv[2];
+                setAttr ($myShader + ".transparency") $tv $tv $tv;
+                
+                
+                } 
+         if($parentBounding == 1)
+        {
+          select ($selected[0] + "_to_Sphere") $selected;
+          parent $selected[0];
+         
+         }
+         if($lockBounding == 1)
+        {
+            setAttr -lock true ($selected[0] + "_to_Sphere.tx");
+            setAttr -lock true ($selected[0] + "_to_Sphere.ty");
+            setAttr -lock true ($selected[0] + "_to_Sphere.tz");
+            setAttr -lock true ($selected[0] + "_to_Sphere.rx");
+            setAttr -lock true ($selected[0] + "_to_Sphere.ry");
+            setAttr -lock true ($selected[0] + "_to_Sphere.rz");
+            setAttr -lock true ($selected[0] + "_to_Sphere.sx");
+            setAttr -lock true ($selected[0] + "_to_Sphere.sy");
+            setAttr -lock true ($selected[0] + "_to_Sphere.sz");
+            setAttr -lock true ($selected[0] + "_to_Sphere.v");                
+        }
+         if ($createLayer == 1)
+         {
+            select ($selected[0] + "_to_Sphere");
+            createDisplayLayer -name ("Bounding box layer sphere") -number 1 -empty;
+            layerEditorAddObjects Bounding_box_layer_sphere;
+         }
+          if($customAttribute == 1)
+         {
+            addAttr -ln "Hitbox"  -dt "string" ($selected[0] + "_to_Sphere.");
+            setAttr -e-channelBox true ($selected[0] + "_to_Sphere.BoundingBox");
+         }
+        
+     }
+       if ($Axisalligned == 0) //||||||||||||||AXIS NOT ALLIGNED SPHERE ||||||||||||||||
+        {
+            print("Axisalligned for sphere \n");
+            
+        string $selected[];
+        $selected = selectedNodes();
+        xform -cp;
+        
+        float $rotate[] = getAttr($selected[0] + ".rotate"); 
+       
+        rotate 0 0 0 $selected;
+        
+        makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+        float $Locatingpivot[] = `xform -worldSpace -query -sp`;
+       // xform -cp $selected;
+       // move -rpr 0 0 0 $selected;
+        
+        float $minx = getAttr($selected[0] + ".boundingBoxMinX");
+        float $maxx = getAttr($selected[0] + ".boundingBoxMaxX");
+        float $miny = getAttr($selected[0] + ".boundingBoxMinY");
+        float $maxy = getAttr($selected[0] + ".boundingBoxMaxY");
+        float $minz = getAttr($selected[0] + ".boundingBoxMinZ");
+        float $maxz = getAttr($selected[0] + ".boundingBoxMaxZ");
+        
+                //||||||||||||||||||Offset |||||||||||||||||||||||||||||||
+
+        global string $Offset;
+        float $v = `floatSliderGrp -q -v Offset`;
+        float $cv[] = `colorSliderGrp -q -rgb ColorSlider`;
+        float $tv = `floatSliderGrp -q -v transvalue`;
+        print("The current value of the offsetslider is: "  + $v + "\n");
+
+        
+        $xValues = $maxx - $minx;
+        $xValues = $xValues + $v;
+        
+        $yValues = $maxy - $miny;
+        $yValues = $yValues + $v;
+         
+        $zValues = $maxz - $minz;
+        $zValues = $zValues + $v;
+        
+        
+        vector $theValues = << $xValues , $yValues , $zValues >>;
+        $theValues /= 2;
+        float $boundingValues = `mag $theValues`; 
+        
+        polySphere -name ($selected[0] + "_to_Sphere") -radius $boundingValues;
+        
+        move $Locatingpivot[0] $Locatingpivot[1] $Locatingpivot[2] ($selected[0] + "_to_Sphere");
+        xform -sp $Locatingpivot[0] $Locatingpivot[1] $Locatingpivot[2] ($selected[0] + "_to_Sphere");  
+        setAttr($selected[0] + "_to_Sphere" + ".rotate", $rotate[0], $rotate[1], $rotate[2]);
+        setAttr($selected[0] + ".rotate", $rotate[0], $rotate[1], $rotate[2]); 
+         
+        if ($createNewShader == 1)
+        {
+
+            string $myShader = `createNode blinn`;
+            string $shadingGroup = ($myShader + "SG");
+            sets -renderable true -noSurfaceShader true
+            -empty -name $shadingGroup;
+            defaultNavigation -connectToExisting
+            -source $myShader
+            -destination $shadingGroup;
+        
+            select -r ($selected[0] + "_to_Sphere");
+            sets -e -forceElement $shadingGroup;
+            
+            setAttr ($myShader + ".color") $cv[0] $cv[1] $cv[2];
+            setAttr ($myShader + ".transparency") $tv $tv $tv;
+            
+        }
+         if($parentBounding == 1)
+        {
+          select ($selected[0] + "_to_Sphere") $selected;
+          parent $selected[0];
+         
+        }
+           if($lockBounding == 1)
+        {
+            setAttr -lock true ($selected[0] + "_to_Sphere.tx");
+            setAttr -lock true ($selected[0] + "_to_Sphere.ty");
+            setAttr -lock true ($selected[0] + "_to_Sphere.tz");
+            setAttr -lock true ($selected[0] + "_to_Sphere.rx");
+            setAttr -lock true ($selected[0] + "_to_Sphere.ry");
+            setAttr -lock true ($selected[0] + "_to_Sphere.rz");
+            setAttr -lock true ($selected[0] + "_to_Sphere.sx");
+            setAttr -lock true ($selected[0] + "_to_Sphere.sy");
+            setAttr -lock true ($selected[0] + "_to_Sphere.sz");
+            setAttr -lock true ($selected[0] + "_to_Sphere.v");                
+        }
+ 
+       
+         if ($createLayer == 1)
+         {  
+            print ("Adding layer");
+            select ($selected[0] + "_to_Sphere");  
+            createDisplayLayer -name ("Bounding box layer sphere") -number 1 -empty;
+            layerEditorAddObjects Bounding_box_layer_sphere;
+         }
+         if($customAttribute == 1)
+         {
+            addAttr -ln "Hitbox"  -dt "string" ($selected[0] + "_to_Sphere.");
+            setAttr -e-channelBox true ($selected[0] + "_to_Sphere.BoundingBox");
+         }
+
+        }
+   }
+ }
+}

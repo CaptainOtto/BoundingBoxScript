@@ -1,4 +1,4 @@
-// Global variables
+{//||||||||||||||||||||||||||||||||||||||||||||||||||Variables|||||||||||||||||||||||||||||||||||||
 global int $Axisalligned = 0;
 global int $createNewShader = 0;
 global int $parentBounding = 0;
@@ -8,7 +8,11 @@ global int $spherelayernumber = 1;
 global int $cubelayernumber = 1;
 global int $customAttribute = 0;
 
-//Global procedures
+
+//||||||||||||||||||||||||||||||||||||||||||||||||||END of Variables||||||||||||||||||||||||||||||
+
+
+//||||||||||||||||||||||||||||||||||||||||||||||||||||PROCS|||||||||||||||||||||||||||||||||||||||
 global proc axisOn ()
 {
     $Axisalligned = 1;
@@ -76,7 +80,7 @@ global proc Undo () // Undos last done thing
 }
 
 
-// End of procedures
+//|||||||||||||||||||||||||||||||||||||||||||END of procs||||||||||||||||||||||||||||||||||||||||
 
 
 string $MyWindow = "myWindow";

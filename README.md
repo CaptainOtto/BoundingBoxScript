@@ -1,5 +1,5 @@
 # BoundingBoxScript
 
-Project made in uni.
+Project made in university whilst studying Technical Artist.
 
 A simple script for creating a bounding box.
